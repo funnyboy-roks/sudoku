@@ -312,10 +312,13 @@ sub_board_count(board, sx, sy, val)
     return ret;
 }
 
-has_conflict(board, x, y, val)
+has_conflict(board, index, val)
     Board board;
 {
     int i;
+    int x, y;
+    x = index % SIZE;
+    y = index / SIZE;
 
     /* check row */
     i = 0;
@@ -435,22 +438,20 @@ void shuffle(items, count)
     }
 }
 
-fill_remaining(board, x, y)
+fill_remaining(board, i)
     Board board;
 {
-    if (y == SIZE) return 1;
-    if (x == SIZE) return fill_remaining(board, 0, y + 1);
-    if (BOARD_IDX(board, x, y)) return fill_remaining(board, x + 1, y);
+    if (i >= SIZE*SIZE) return 1;
+    if (board[i]) return fill_remaining(board, i + 1);
 
     int n = 1;
     while (n <= 9)
     {
-        if (!has_conflict(board, x, y, n)) {
-            BOARD_IDX(board, x, y) = n;
-            if (fill_remaining(board, x + 1, y)) {
-                return 1;
-            }
-            BOARD_IDX(board, x, y) = 0; 
+        if (!has_conflict(board, i, n))
+        {
+            board[i] = n;
+            if (fill_remaining(board, i + 1)) return 1;
+            else board[i] = 0; 
         }
         n += 1;
     }
@@ -514,7 +515,7 @@ void gen_board(board)
     randomise_square(board, 1, 1);
     randomise_square(board, 2, 2);
 
-    fill_remaining(board, 0, 0);
+    fill_remaining(board, 0);
 }
 
 void reset(void)
@@ -578,7 +579,8 @@ main(argc, argv)
 {
     char c;
 
-    if (!handle_args(argc, argv)) {
+    if (!handle_args(argc, argv))
+    {
         print_usage(argv[0]);
         return 1;
     }
@@ -625,7 +627,7 @@ main(argc, argv)
 
             case 's': {
                 cheated = 1;
-                if (!fill_remaining(board, 0, 0)) {
+                if (!fill_remaining(board, 0)) {
                     fprintf(stderr, ERR_COLOUR"Failed to find solution.\n");
                 }
             }; break;
@@ -685,7 +687,8 @@ main(argc, argv)
         highlight_y = cursor_y;
         int has_error = validate_board(&error, board);
         int is_full = is_board_full(board);
-        if (!has_error && is_full) {
+        if (!has_error && is_full)
+        {
             if (!cheated)
             {
                 printf(SUCCESS_STYLE"Congratulations, you solved it!\n"RESET);
